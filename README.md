@@ -1,1 +1,1 @@
-Everything you need to monitor your powerplugs with zabbix and a grafana dashboard
+Everything you need to monitor your Tasmota powerplugs with zabbix and a grafana dashboard
