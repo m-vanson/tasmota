@@ -1,0 +1,279 @@
+zabbix_export:
+  version: '6.2'
+  date: '2022-09-21T15:12:27Z'
+  template_groups:
+    -
+      uuid: 36bff6c29af64692839d077febfc7079
+      name: 'Templates/Network devices'
+  templates:
+    -
+      uuid: 518eab6c746f45b88eaa820980c54f41
+      template: 'Template Tasmota Powerplug'
+      name: 'Template Tasmota Powerplug'
+      groups:
+        -
+          name: 'Templates/Network devices'
+      items:
+        -
+          uuid: 99a7fb10738f4fbd98a68f3906cadb78
+          name: 'Sensor stats'
+          type: ZABBIX_ACTIVE
+          key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/SENSOR"]'
+          delay: '0'
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+          triggers:
+            -
+              uuid: 12c22af58d274dfba1a52cec4d48594f
+              expression: 'nodata(/Template Tasmota Powerplug/mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/SENSOR"],5m)=1'
+              name: 'No data for sensor: {$MQTT_TOPIC} for 5 minutes'
+              priority: WARNING
+              manual_close: 'YES'
+        -
+          uuid: a73a441a4f7b41fc8efd83c02ec979d7
+          name: 'State stats'
+          type: ZABBIX_ACTIVE
+          key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/STATE"]'
+          delay: '0'
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: 7c5205e83c1d4c7e9c187c908a70aa22
+          name: Current
+          type: DEPENDENT
+          key: 'tasmota.current[{$MQTT_TOPIC}]'
+          delay: '0'
+          value_type: FLOAT
+          units: A
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.ENERGY.Current
+          master_item:
+            key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/SENSOR"]'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: 8e5c7f3bdd124f3bb4560b511210bcfd
+          name: 'Apparent power'
+          type: DEPENDENT
+          key: 'tasmota.power.apparent[{$MQTT_TOPIC}]'
+          delay: '0'
+          units: VA
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.ENERGY.ApparentPower
+          master_item:
+            key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/SENSOR"]'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: 784c843fc77c41de86197ac9086ee205
+          name: 'Reactive power'
+          type: DEPENDENT
+          key: 'tasmota.power.reactive[{$MQTT_TOPIC}]'
+          delay: '0'
+          units: VAR
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.ENERGY.ReactivePower
+          master_item:
+            key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/SENSOR"]'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: b37809a41156431987eb85a88b2a4419
+          name: 'Power state'
+          type: DEPENDENT
+          key: 'tasmota.power.state[{$MQTT_TOPIC}]'
+          delay: '0'
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.POWER
+            -
+              type: STR_REPLACE
+              parameters:
+                - 'OFF'
+                - '0'
+            -
+              type: STR_REPLACE
+              parameters:
+                - 'ON'
+                - '1'
+          master_item:
+            key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/STATE"]'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: b01b9e552a1a4bf589dfb818b6e61738
+          name: 'Total power used'
+          type: DEPENDENT
+          key: 'tasmota.power.total[{$MQTT_TOPIC}]'
+          delay: '0'
+          value_type: FLOAT
+          units: kWh
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.ENERGY.Total
+          master_item:
+            key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/SENSOR"]'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: 474ef267fba24e63accbf8a4b27cf912
+          name: Power
+          type: DEPENDENT
+          key: 'tasmota.power[{$MQTT_TOPIC}]'
+          delay: '0'
+          units: W
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.ENERGY.Power
+          master_item:
+            key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/SENSOR"]'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: 67498738fe154f9a943697175a7cb492
+          name: 'Total costs'
+          type: CALCULATED
+          key: tasmota.price.totalcosts
+          delay: 2m
+          value_type: FLOAT
+          units: euro
+          params: 'last(//tasmota.power.total[{$MQTT_TOPIC}])*{$KWH_PRICE_IN_EUROS}'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: 73b185fb2528446db7c49e76345d9848
+          name: Uptime
+          type: DEPENDENT
+          key: 'tasmota.uptime.seconds[{$MQTT_TOPIC}]'
+          delay: '0'
+          units: s
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.UptimeSec
+          master_item:
+            key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/STATE"]'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: b7b7f37804fe418abb0e8e4e33b7a7cc
+          name: 'Wifi channel'
+          type: DEPENDENT
+          key: 'tasmota.wifi.channel[{$MQTT_TOPIC}]'
+          delay: '0'
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.Wifi.Channel
+          master_item:
+            key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/STATE"]'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: b22df02901544de494f6ce0451c162be
+          name: 'Wifi mode'
+          type: DEPENDENT
+          key: 'tasmota.wifi.mode[{$MQTT_TOPIC}]'
+          delay: '0'
+          trends: '0'
+          value_type: CHAR
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.Wifi.Mode
+          master_item:
+            key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/STATE"]'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: 20d096c5a836466ebe5682719f352b00
+          name: 'Signal strength'
+          type: DEPENDENT
+          key: 'tasmota.wifi.signalstrength[{$MQTT_TOPIC}]'
+          delay: '0'
+          value_type: FLOAT
+          units: DB
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.Wifi.Signal
+          master_item:
+            key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/STATE"]'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+        -
+          uuid: 013ffbf8e0db4bb898c1fa257b48f0e1
+          name: Voltage
+          type: DEPENDENT
+          key: 'tasmoto.voltage[{$MQTT_TOPIC}]'
+          delay: '0'
+          units: V
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.ENERGY.Voltage
+          master_item:
+            key: 'mqtt.get[192.168.178.9, "tele/{$MQTT_TOPIC}/SENSOR"]'
+          tags:
+            -
+              tag: Application
+              value: PowerPlug
+      macros:
+        -
+          macro: '{$KWH_PRICE_IN_EUROS}'
+          value: '0.50'
+        -
+          macro: '{$MQTT_TOPIC}'
+          value: boiler
